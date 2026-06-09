@@ -99,7 +99,21 @@
             </BaseButton>
           </div>
           <div class="el-card__body">
-            <DataTable :columns="columns" :data="students">
+            <!-- 搜索筛选区 -->
+            <div class="list-toolbar">
+              <BaseInput
+                :model-value="searchKeyword"
+                placeholder="按姓名或专业关键字筛选"
+                prefix-icon="🔍"
+                class="search-input"
+                @update:modelValue="handleSearchInput"
+              />
+              <span v-if="searchKeyword" class="filter-tip">
+                共筛选到 {{ filteredCount }} 条结果
+              </span>
+            </div>
+
+            <DataTable :columns="columns" :data="pagedStudents">
               <template #id="{ row }">
                 <span class="student-id">{{ row.id }}</span>
               </template>
@@ -123,6 +137,47 @@
                 </div>
               </template>
             </DataTable>
+
+            <!-- 分页器 -->
+            <div class="el-pagination" v-if="filteredCount > 0">
+              <span class="el-pagination__total">共 {{ filteredCount }} 条</span>
+              <button
+                class="el-pagination__btn"
+                :disabled="currentPage <= 1"
+                @click="handlePageChange(currentPage - 1)"
+              >
+                上一页
+              </button>
+              <button
+                v-for="page in pageNumbers"
+                :key="page"
+                class="el-pagination__page"
+                :class="{ 'is-active': page === currentPage }"
+                @click="handlePageChange(page)"
+              >
+                {{ page }}
+              </button>
+              <button
+                class="el-pagination__btn"
+                :disabled="currentPage >= totalPages"
+                @click="handlePageChange(currentPage + 1)"
+              >
+                下一页
+              </button>
+              <span class="el-pagination__jump">
+                前往
+                <input
+                  type="number"
+                  min="1"
+                  :max="totalPages"
+                  class="el-pagination__editor"
+                  :value="jumpPage"
+                  @input="jumpPage = $event.target.value"
+                  @keyup.enter="handleJump"
+                />
+                页
+              </span>
+            </div>
           </div>
         </section>
       </div>
@@ -193,7 +248,20 @@ import { useStudents } from '../composables/useStudents'
 import { useToast } from '../composables/useToast'
 
 const { logout, getUsername } = useAuth()
-const { students, studentCount, addStudent, updateStudent, deleteStudent } = useStudents()
+const {
+  students,
+  studentCount,
+  addStudent,
+  updateStudent,
+  deleteStudent,
+  searchKeyword,
+  currentPage,
+  filteredCount,
+  totalPages,
+  pagedStudents,
+  setSearchKeyword,
+  setCurrentPage
+} = useStudents()
 const toast = useToast()
 
 const username = computed(() => getUsername())
@@ -210,6 +278,41 @@ const majorCount = computed(() => {
   const majors = new Set(students.value.map(s => s.major))
   return majors.size
 })
+
+// 分页页码列表（最多显示 7 个，含省略逻辑省略，简单输出全部页码）
+const pageNumbers = computed(() => {
+  const pages = []
+  const total = totalPages.value
+  const current = currentPage.value
+  const max = 7
+  if (total <= max) {
+    for (let i = 1; i <= total; i++) pages.push(i)
+    return pages
+  }
+  let start = Math.max(1, current - 3)
+  let end = Math.min(total, start + max - 1)
+  if (end - start < max - 1) start = Math.max(1, end - max + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+  return pages
+})
+
+const jumpPage = ref('')
+
+const handleSearchInput = (value) => {
+  setSearchKeyword(value)
+}
+
+const handlePageChange = (page) => {
+  setCurrentPage(page)
+}
+
+const handleJump = () => {
+  const page = parseInt(jumpPage.value, 10)
+  if (Number.isFinite(page)) {
+    setCurrentPage(page)
+  }
+  jumpPage.value = ''
+}
 
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
@@ -642,6 +745,99 @@ const handleLogout = () => {
 
 .el-card__body {
   padding: 20px;
+}
+
+/* 列表工具栏（搜索框） */
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-input {
+  width: 320px;
+}
+
+.filter-tip {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+/* 分页器 */
+.el-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--color-border-lighter);
+  flex-wrap: wrap;
+}
+
+.el-pagination__total {
+  margin-right: 8px;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+.el-pagination__btn,
+.el-pagination__page {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-lighter);
+  background: var(--color-bg-container);
+  color: var(--color-text-regular);
+  border-radius: var(--border-radius-base);
+  font-size: var(--font-size-small);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.el-pagination__btn:hover:not(:disabled),
+.el-pagination__page:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.el-pagination__btn:disabled {
+  cursor: not-allowed;
+  color: var(--color-text-placeholder);
+  background: var(--color-fill-light);
+}
+
+.el-pagination__page.is-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  cursor: default;
+}
+
+.el-pagination__jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  font-size: var(--font-size-small);
+  color: var(--color-text-regular);
+}
+
+.el-pagination__editor {
+  width: 56px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-base);
+  text-align: center;
+  font-size: var(--font-size-small);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.el-pagination__editor:focus {
+  border-color: var(--color-primary);
 }
 
 /* 学生ID样式 */
