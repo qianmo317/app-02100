@@ -1,57 +1,70 @@
 <template>
-  <div class="el-table-wrapper">
-    <table class="el-table">
-      <thead class="el-table__header">
-        <tr>
-          <th
-            v-for="column in columns"
-            :key="column.key"
-            class="el-table__cell"
-            :style="{ width: column.width }"
-          >
-            <div class="cell">{{ column.title }}</div>
-          </th>
-        </tr>
-      </thead>
-      <tbody class="el-table__body">
-        <tr v-if="data.length === 0" class="el-table__row el-table__row--empty">
-          <td :colspan="columns.length" class="el-table__cell">
-            <div class="el-table__empty-block">
-              <span class="el-table__empty-text">
-                <svg class="empty-icon" viewBox="0 0 1024 1024">
-                  <path d="M855.6 427.2H168.4c-2.6 0-5 2-5.3 4.6l-3.5 30.6c-0.2 2.1 0.5 4.2 2 5.7 1.4 1.5 3.4 2.4 5.5 2.4h688.4c2.1 0 4.1-0.9 5.5-2.4 1.4-1.5 2.2-3.6 2-5.7l-3.5-30.6c-0.2-2.6-2.6-4.6-5.3-4.6z" fill="#E6E8EB"/>
-                  <path d="M668.6 752.4H355.4c-5.8 0-10.6-4.8-10.6-10.6V608.2c0-5.8 4.8-10.6 10.6-10.6h313.2c5.8 0 10.6 4.8 10.6 10.6v133.6c0 5.8-4.8 10.6-10.6 10.6z" fill="#E6E8EB"/>
-                  <path d="M512 384m-64 0a64 64 0 1 0 128 0 64 64 0 1 0-128 0Z" fill="#C0C4CC"/>
-                  <path d="M512 576c-70.7 0-128-57.3-128-128s57.3-128 128-128 128 57.3 128 128-57.3 128-128 128z m0-192c-35.3 0-64 28.7-64 64s28.7 64 64 64 64-28.7 64-64-28.7-64-64-64z" fill="#909399"/>
-                </svg>
-                暂无数据
-              </span>
-            </div>
-          </td>
-        </tr>
-        <template v-else>
-          <tr
-            v-for="(row, index) in data"
-            :key="row.id || index"
-            class="el-table__row"
-            :class="{ 'el-table__row--striped': index % 2 === 1 }"
-          >
-            <td v-for="column in columns" :key="column.key" class="el-table__cell">
-              <div class="cell">
-                <slot :name="column.key" :row="row" :index="index">
-                  {{ row[column.key] }}
-                </slot>
+  <div class="data-table-container">
+    <div class="el-table-wrapper">
+      <table class="el-table">
+        <thead class="el-table__header">
+          <tr>
+            <th
+              v-for="column in columns"
+              :key="column.key"
+              class="el-table__cell"
+              :style="{ width: column.width }"
+            >
+              <div class="cell">{{ column.title }}</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="el-table__body">
+          <tr v-if="data.length === 0" class="el-table__row el-table__row--empty">
+            <td :colspan="columns.length" class="el-table__cell">
+              <div class="el-table__empty-block">
+                <span class="el-table__empty-text">
+                  <svg class="empty-icon" viewBox="0 0 1024 1024">
+                    <path d="M855.6 427.2H168.4c-2.6 0-5 2-5.3 4.6l-3.5 30.6c-0.2 2.1 0.5 4.2 2 5.7 1.4 1.5 3.4 2.4 5.5 2.4h688.4c2.1 0 4.1-0.9 5.5-2.4 1.4-1.5 2.2-3.6 2-5.7l-3.5-30.6c-0.2-2.6-2.6-4.6-5.3-4.6z" fill="#E6E8EB"/>
+                    <path d="M668.6 752.4H355.4c-5.8 0-10.6-4.8-10.6-10.6V608.2c0-5.8 4.8-10.6 10.6-10.6h313.2c5.8 0 10.6 4.8 10.6 10.6v133.6c0 5.8-4.8 10.6-10.6 10.6z" fill="#E6E8EB"/>
+                    <path d="M512 384m-64 0a64 64 0 1 0 128 0 64 64 0 1 0-128 0Z" fill="#C0C4CC"/>
+                    <path d="M512 576c-70.7 0-128-57.3-128-128s57.3-128 128-128 128 57.3 128 128-57.3 128-128 128z m0-192c-35.3 0-64 28.7-64 64s28.7 64 64 64 64-28.7 64-64-28.7-64-64-64z" fill="#909399"/>
+                  </svg>
+                  暂无数据
+                </span>
               </div>
             </td>
           </tr>
-        </template>
-      </tbody>
-    </table>
+          <template v-else>
+            <tr
+              v-for="(row, index) in data"
+              :key="row.id || index"
+              class="el-table__row"
+              :class="{ 'el-table__row--striped': index % 2 === 1 }"
+            >
+              <td v-for="column in columns" :key="column.key" class="el-table__cell">
+                <div class="cell">
+                  <slot :name="column.key" :row="row" :index="index">
+                    {{ row[column.key] }}
+                  </slot>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <el-pagination
+      v-if="pagination"
+      class="pagination-wrapper"
+      v-model:current-page="currentPageModel"
+      v-model:page-size="pageSizeModel"
+      :page-sizes="pageSizes"
+      :total="total"
+      layout="total, sizes, prev, pager, next, jumper"
+      background
+    />
   </div>
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   columns: {
     type: Array,
     required: true
@@ -59,7 +72,29 @@ defineProps({
   data: {
     type: Array,
     default: () => []
+  },
+  pagination: {
+    type: Boolean,
+    default: false
+  },
+  total: {
+    type: Number,
+    default: 0
+  },
+  pageSizes: {
+    type: Array,
+    default: () => [10, 20, 50, 100]
   }
+})
+
+const currentPageModel = defineModel('currentPage', {
+  type: Number,
+  default: 1
+})
+
+const pageSizeModel = defineModel('pageSize', {
+  type: Number,
+  default: 10
 })
 </script>
 
@@ -182,5 +217,15 @@ defineProps({
     opacity: 0;
     transform: translateX(30px);
   }
+}
+
+.data-table-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pagination-wrapper {
+  justify-content: flex-end;
 }
 </style>

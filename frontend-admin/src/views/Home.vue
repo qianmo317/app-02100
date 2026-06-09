@@ -99,7 +99,28 @@
             </BaseButton>
           </div>
           <div class="el-card__body">
-            <DataTable :columns="columns" :data="students">
+            <div class="search-bar">
+              <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input
+                  type="text"
+                  class="search-input"
+                  v-model="searchKeyword"
+                  placeholder="搜索姓名或专业..."
+                />
+              </div>
+              <span v-if="searchKeyword" class="search-result-tip">
+                找到 {{ filteredCount }} 条结果
+              </span>
+            </div>
+            <DataTable
+              :columns="columns"
+              :data="paginatedStudents"
+              :pagination="true"
+              :total="filteredCount"
+              v-model:currentPage="currentPage"
+              v-model:pageSize="pageSize"
+            >
               <template #id="{ row }">
                 <span class="student-id">{{ row.id }}</span>
               </template>
@@ -193,7 +214,18 @@ import { useStudents } from '../composables/useStudents'
 import { useToast } from '../composables/useToast'
 
 const { logout, getUsername } = useAuth()
-const { students, studentCount, addStudent, updateStudent, deleteStudent } = useStudents()
+const {
+  students,
+  studentCount,
+  addStudent,
+  updateStudent,
+  deleteStudent,
+  searchKeyword,
+  currentPage,
+  pageSize,
+  filteredCount,
+  paginatedStudents
+} = useStudents()
 const toast = useToast()
 
 const username = computed(() => getUsername())
@@ -642,6 +674,59 @@ const handleLogout = () => {
 
 .el-card__body {
   padding: 20px;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  width: 320px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 36px;
+  background-color: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-base);
+  font-size: var(--font-size-base);
+  color: var(--color-text-regular);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.search-input:hover {
+  border-color: var(--color-text-placeholder);
+}
+
+.search-input:focus {
+  border-color: var(--color-primary);
+}
+
+.search-result-tip {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
 }
 
 /* 学生ID样式 */
