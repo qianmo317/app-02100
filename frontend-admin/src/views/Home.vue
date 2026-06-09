@@ -88,7 +88,7 @@
                 <path d="M492 400h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H492c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8zm0 144h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H492c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8zm0 144h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H492c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8zM340 368a40 40 0 1 0 80 0 40 40 0 1 0-80 0zm0 144a40 40 0 1 0 80 0 40 40 0 1 0-80 0zm0 144a40 40 0 1 0 80 0 40 40 0 1 0-80 0z"/>
               </svg>
               <span class="card-title">学生列表</span>
-              <span class="el-tag">共 {{ studentCount }} 人</span>
+              <span class="el-tag">共 {{ filteredCount }} 人</span>
             </div>
             <BaseButton type="primary" @click="openAddModal">
               <svg viewBox="0 0 1024 1024" fill="currentColor" class="btn-icon">
@@ -99,7 +99,24 @@
             </BaseButton>
           </div>
           <div class="el-card__body">
-            <DataTable :columns="columns" :data="students">
+            <div class="search-bar">
+              <div class="search-input-wrapper">
+                <svg class="search-icon" viewBox="0 0 1024 1024" fill="currentColor">
+                  <path d="M909.6 854.5L649.9 594.8C690.2 542.7 714 478.4 714 408c0-167.6-136.4-304-304-304S106 240.4 106 408s136.4 304 304 304c70.4 0 134.7-23.8 186.8-64.2l259.7 259.6a8.2 8.2 0 0 0 11.6 0l41-40.9a8.2 8.2 0 0 0 0-11.6zM410 676c-147.1 0-268-120.9-268-268s120.9-268 268-268 268 120.9 268 268-120.9 268-268 268z"/>
+                </svg>
+                <input
+                  type="text"
+                  class="search-input"
+                  placeholder="按姓名或专业搜索..."
+                  :value="searchKeyword"
+                  @input="handleSearch($event.target.value)"
+                />
+                <svg v-if="searchKeyword" class="search-clear" viewBox="0 0 1024 1024" fill="currentColor" @click="handleSearch('')">
+                  <path d="M563.8 512l262.5-312.9c4.4-5.2 0.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L512 442.2 295.9 191.7c-3-3.6-7.5-5.7-12.3-5.7H203.8c-6.8 0-10.5 7.9-6.1 13.1L460.2 512 197.7 824.9c-4.4 5.2-0.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7L512 581.8l216.1 250.5c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/>
+                </svg>
+              </div>
+            </div>
+            <DataTable :columns="columns" :data="pagedStudents">
               <template #id="{ row }">
                 <span class="student-id">{{ row.id }}</span>
               </template>
@@ -123,6 +140,36 @@
                 </div>
               </template>
             </DataTable>
+            <div class="pagination">
+              <div class="pagination-info">
+                第 {{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, filteredCount) }} 条，共 {{ filteredCount }} 条
+              </div>
+              <div class="pagination-controls">
+                <button class="pagination-btn" :disabled="currentPage <= 1" @click="handlePageChange(1)">
+                  <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M872 572H268.8l154.4 154.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0l-208-208c-12.5-12.5-12.5-32.8 0-45.3l208-208c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3L268.8 508H872c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/><path d="M392 572H268.8l154.4 154.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0l-208-208c-12.5-12.5-12.5-32.8 0-45.3l208-208c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3L268.8 508H392c17.7 0 32 14.3 32 32s-14.3 32-32 32z" transform="translate(480,0)"/></svg>
+                </button>
+                <button class="pagination-btn" :disabled="currentPage <= 1" @click="handlePageChange(currentPage - 1)">
+                  <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M872 572H268.8l154.4 154.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0l-208-208c-12.5-12.5-12.5-32.8 0-45.3l208-208c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3L268.8 508H872c17.7 0 32 14.3 32 32s-14.3 32-32 32z"/></svg>
+                </button>
+                <template v-for="page in paginationPages" :key="page">
+                  <span v-if="page === '...'" class="pagination-ellipsis">...</span>
+                  <button v-else class="pagination-btn pagination-btn--page" :class="{ 'is-active': page === currentPage }" @click="handlePageChange(page)">
+                    {{ page }}
+                  </button>
+                </template>
+                <button class="pagination-btn" :disabled="currentPage >= totalPages" @click="handlePageChange(currentPage + 1)">
+                  <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M152 572h603.2L600.8 726.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l208-208c12.5-12.5 12.5-32.8 0-45.3l-208-208c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L755.2 508H152c-17.7 0-32 14.3-32 32s14.3 32 32 32z"/></svg>
+                </button>
+                <button class="pagination-btn" :disabled="currentPage >= totalPages" @click="handlePageChange(totalPages)">
+                  <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M152 572h603.2L600.8 726.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l208-208c12.5-12.5 12.5-32.8 0-45.3l-208-208c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L755.2 508H152c-17.7 0-32 14.3-32 32s14.3 32 32 32z" transform="translate(-480,0)"/><path d="M152 572h603.2L600.8 726.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l208-208c12.5-12.5 12.5-32.8 0-45.3l-208-208c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L755.2 508H152c-17.7 0-32 14.3-32 32s14.3 32 32 32z"/></svg>
+                </button>
+              </div>
+              <div class="pagination-jump">
+                前往
+                <input type="number" class="pagination-jump-input" :value="currentPage" @change="handlePageChange(Number($event.target.value))" min="1" :max="totalPages" />
+                页
+              </div>
+            </div>
           </div>
         </section>
       </div>
@@ -193,7 +240,7 @@ import { useStudents } from '../composables/useStudents'
 import { useToast } from '../composables/useToast'
 
 const { logout, getUsername } = useAuth()
-const { students, studentCount, addStudent, updateStudent, deleteStudent } = useStudents()
+const { students, studentCount, filteredCount, totalPages, currentPage, pageSize, searchKeyword, pagedStudents, addStudent, updateStudent, deleteStudent, handleSearch, handlePageChange } = useStudents()
 const toast = useToast()
 
 const username = computed(() => getUsername())
@@ -204,6 +251,24 @@ const isEditing = ref(false)
 const isSubmitting = ref(false)
 const editingId = ref(null)
 const deleteTarget = ref(null)
+
+const paginationPages = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  const pages = []
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    if (current > 4) pages.push('...')
+    const start = Math.max(2, current - 2)
+    const end = Math.min(total - 1, current + 2)
+    for (let i = start; i <= end; i++) pages.push(i)
+    if (current < total - 3) pages.push('...')
+    pages.push(total)
+  }
+  return pages
+})
 
 // 计算专业数量
 const majorCount = computed(() => {
@@ -681,6 +746,172 @@ const handleLogout = () => {
   gap: 8px;
 }
 
+/* 搜索栏 */
+.search-bar {
+  margin-bottom: 16px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  max-width: 360px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-placeholder);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 36px 0 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-base);
+  font-size: var(--font-size-base);
+  color: var(--color-text-regular);
+  background: var(--color-bg-container);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.search-input:hover {
+  border-color: var(--color-text-placeholder);
+}
+
+.search-input:focus {
+  border-color: var(--color-primary);
+}
+
+.search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.search-clear:hover {
+  color: var(--color-text-regular);
+}
+
+/* 分页 */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-lighter);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pagination-info {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--border-radius-base);
+  background: var(--color-bg-container);
+  color: var(--color-text-regular);
+  font-size: var(--font-size-small);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.pagination-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.pagination-btn:hover:not(:disabled):not(.is-active) {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.pagination-btn:disabled {
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
+  background: var(--color-fill-lighter);
+}
+
+.pagination-btn.is-active {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  color: var(--color-text-placeholder);
+  font-size: var(--font-size-small);
+}
+
+.pagination-jump {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-small);
+  color: var(--color-text-regular);
+}
+
+.pagination-jump-input {
+  width: 50px;
+  height: 32px;
+  text-align: center;
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--border-radius-base);
+  font-size: var(--font-size-small);
+  color: var(--color-text-regular);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  -moz-appearance: textfield;
+}
+
+.pagination-jump-input::-webkit-inner-spin-button,
+.pagination-jump-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pagination-jump-input:focus {
+  border-color: var(--color-primary);
+}
+
 .btn-icon {
   width: 14px;
   height: 14px;
@@ -744,6 +975,15 @@ const handleLogout = () => {
 
   .action-buttons {
     flex-direction: column;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .search-input-wrapper {
+    max-width: 100%;
   }
 }
 </style>
